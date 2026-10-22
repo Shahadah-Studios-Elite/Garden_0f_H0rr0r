@@ -3,32 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden 0f H0RR0R 3D - Modular Stable Edition v4</title>
+    <title>Garden 0f H0RR0R 3D</title>
     <style>
         * { box-sizing: border-box; }
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Courier New', monospace; background-color: #0c0808; color: #ff3333; user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Courier New', monospace; background-color: #010103; color: #ff3333; user-select: none; }
         #canvas-holder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #menu-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #220505 0%, #050000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; }
-        #menu-screen h1 { font-size: 3.5rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 15px; text-shadow: 0 0 12px #ff0000; }
-        #menu-screen p { color: #bbbbbb; font-size: 1.1rem; margin-bottom: 35px; max-width: 500px; line-height: 1.6; }
-        .action-btn { padding: 16px 45px; font-size: 1.4rem; background: #440000; color: #ff4444; border: 3px solid #ff3333; cursor: pointer; text-transform: uppercase; font-weight: bold; box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); transition: 0.2s; }
+        #menu-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #090b12 0%, #010103 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; }
+        #menu-screen h1 { font-size: 3.5rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 15px; text-shadow: 0 0 12px #ff3333; }
+        #menu-screen p { color: #8899aa; font-size: 1.1rem; margin-bottom: 35px; max-width: 500px; line-height: 1.6; }
+        .action-btn { padding: 16px 45px; font-size: 1.4rem; background: #0f111a; color: #ff3333; border: 3px solid #ff3333; cursor: pointer; text-transform: uppercase; font-weight: bold; box-shadow: 0 0 15px rgba(255, 51, 51, 0.3); transition: 0.2s; }
         .action-btn:hover { background: #ff3333; color: #000000; box-shadow: 0 0 30px #ff3333; }
         #hud-overlay { position: absolute; top: 25px; left: 25px; font-size: 1.6rem; font-weight: bold; text-shadow: 2px 2px 5px #000000; pointer-events: none; z-index: 5; display: none; }
-        #interaction-prompt { position: absolute; bottom: 25%; width: 100%; text-align: center; font-size: 1.8rem; color: #ffffff; text-shadow: 0 0 8px #ff0000; font-weight: bold; display: none; pointer-events: none; z-index: 5; }
+        #interaction-prompt { position: absolute; bottom: 25%; width: 100%; text-align: center; font-size: 1.8rem; color: #ffffff; text-shadow: 0 0 8px #ff3333; font-weight: bold; display: none; pointer-events: none; z-index: 5; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: rgba(255, 50, 50, 0.8); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; display: none; box-shadow: 0 0 4px #000000; }
     </style>
-    <script src="https://cloudflare.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
+
     <div id="menu-screen">
         <h1>Garden 0f H0RR0R 3D</h1>
-        <p>Find 5 Hidden Switch Posts. Approach them and press [E] to flip. Collect them all to unlock the Master Exit Door.</p>
+        <p>Find 5 Hidden Switch Posts in the deep fog. Approach them closely and press [E] to flip. Slide the master exit door open and step through it to escape.</p>
         <button class="action-btn" id="launch-engine-btn">Click to Start Game</button>
     </div>
+
     <div id="hud-overlay">Switches Activated: <span id="counter">0</span> / 5</div>
     <div id="interaction-prompt">PRESS [E] TO INTERACT</div>
     <div id="crosshair"></div>
+
     <div id="canvas-holder"></div>
-    <script src="js.js"></script>
+
+    <script>
+        const menuScreen = document.getElementById('menu-screen');
+        const launchBtn = document.getElementById('launch-engine-btn');
+        const hudOverlay = document.getElementById('hud-overlay');
+        const counterEl = document.getElementById('counter');
+        const promptEl = document.getElementById('interaction-prompt');
+        const crosshairEl = document.getElementById('crosshair');
+        const canvasHolder = document.getElementById('canvas-holder');
+
+        let scene, camera, renderer, clock;
+        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
+        let direction = new THREE.Vector3();
+        let isEngineActive = false;
+
+        let switchesCount = 0;
+        let interactiveObjects = [];
+        let escapeDoor, doorFrame;
+        let pillars = [];
+        let materialsToUpdate = [];
+
+        const player = {
+            yaw: 0,
+            pitch: 0,
+            speed: 0.14,
+            height: 2,
+            radius: 1.2,
+            pos: new THREE.Vector3(0, 2, 22)
+        };
+
+        launchBtn.addEventListener('click', () => {
+            menuScreen.style.display = 'none';
+            hudOverlay.style.display = 'block';
+            crosshairEl.style.display = 'block';
+            document.body.requestPointerLock();
+            if (!isEngineActive) { initGameEngine(); }
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement !== document.body) {
+                menuScreen.style.display = 'flex';
+                hudOverlay.style.display = 'none';
+                crosshairEl.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('mousemove', (event) => {
+            if (document.pointerLockElement !== document.body) return;
+            player.yaw -= event.movementX * 0.0025;
+            player.pitch -= event.movementY * 0.0025;
+            player.pitch = Math.max(-Math.PI / 2.3, Math.min(Math.PI / 2.3, player.pitch));
+            camera.rotation.set(0, 0, 0);
+            camera.rotateY(player.yaw);
+            camera.rotateX(player.pitch);
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = true;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = true;
+            if (e.code === 'KeyE') processSwitchActivation();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = false;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = false;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
+        });
+
+        function initGameEngine() {
+            isEngineActive = true;
+            clock = new THREE.Clock();
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x010103);
+            scene.fog = new THREE.FogExp2(0x010103, 0.06);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.copy(player.pos);
+            camera.rotation.order = 'YXZ';
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            canvasHolder.appendChild(renderer.domElement);
+
+            generateWorldMap();
+            executeRenderLoop();
+        }
+
+        function generateWorldMap() {
+            const floorMaterial = new THREE.MeshBasicMaterial({ color: 0x12141c });
+            const wallMaterial = new THREE.MeshBasicMaterial({ color: 0x1c1e24 });
+            const doorMaterial = new THREE.MeshBasicMaterial({ color: 0x2b1111 });
+            const pillarMaterial = new THREE.MeshBasicMaterial({ color: 0x0f111a });
+            const frameMaterial = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+
+            materialsToUpdate.push({ mat: floorMaterial, baseColor: new THREE.Color(0x12141c) });
+            materialsToUpdate.push({ mat: wallMaterial, baseColor: new THREE.Color(0x1c1e24) });
+            materialsToUpdate.push({ mat: doorMaterial, baseColor: new THREE.Color(0x2b1111) });
+            materialsToUpdate.push({ mat: pillarMaterial, baseColor: new THREE.Color(0x0f111a) });
+
+            const floorGeo = new THREE.PlaneGeometry(60, 60);
+            const floorMesh = new THREE.Mesh(floorGeo, floorMaterial);
+            floorMesh.rotation.x = -Math.PI / 2;
+            scene.add(floorMesh);
+
+            const buildWallSegment = (w, h, d, x, y, z) => {
+                const geo = new THREE.BoxGeometry(w, h, d);
+                const mesh = new THREE.Mesh(geo, wallMaterial);
+                mesh.position.set(x, y, z);
+                scene.add(mesh);
+            };
+
+            buildWallSegment(60, 8, 1, 0, 4, -30);
+            buildWallSegment(60, 8, 1, 0, 4, 30);
+            buildWallSegment(1, 8, 60, -30, 4, 0);
+            buildWallSegment(1, 8, 60, 30, 4, 0);
+
+            const pillarGeo = new THREE.BoxGeometry(4, 8, 4);
+            const positionsArray = [{x: -12, z: -8}, {x: 12, z: -8}, {x: -12, z: 12}, {x: 12, z: 12}];
+            positionsArray.forEach(pos => {
+                const pillarMesh = new THREE.Mesh(pillarGeo, pillarMaterial);
+                pillarMesh.position.set(pos.x, 4, pos.z);
+                scene.add(pillarMesh);
+                pillars.push(pillarMesh);
+            });
+
+            for (let i = 0; i < 6; i++) {
+                const frameGeo = new THREE.BoxGeometry(3, 4, 0.2);
+                const internalCanvas = document.createElement('canvas');
+                internalCanvas.width = 64; 
+                internalCanvas.height = 64;
+                const canvasCtx = internalCanvas.getContext('2d');
+                canvasCtx.fillStyle = '#11131a'; 
+                canvasCtx.fillRect(0, 0, 64, 64);
+                canvasCtx.fillStyle = '#2b3344'; 
+                canvasCtx.fillRect(16 + i, 12, 32, 40);
+                
+                const generatedTexture = new THREE.CanvasTexture(internalCanvas);
+                const artMaterial = new THREE.MeshBasicMaterial({ map: generatedTexture });
+                materialsToUpdate.push({ mat: artMaterial, baseColor: new THREE.Color(0xffffff) });
+                
+                const frameMesh = new THREE.Mesh(frameGeo, artMaterial);
+                frameMesh.position.set(-29.4, 4, -18 + (i * 7.5));
+                frameMesh.rotation.y = Math.PI / 2;
+                scene.add(frameMesh);
+            }
+
+            const doorGeo = new THREE.BoxGeometry(6, 6, 0.8);
+            escapeDoor = new THREE.Mesh(doorGeo, doorMaterial);
+            escapeDoor.position.set(0, 3, -29.3);
+            scene.add(escapeDoor);
+
+            const frameOuterGeo = new THREE.BoxGeometry(6.4, 6.4, 0.2);
+            doorFrame = new THREE.Mesh(frameOuterGeo, frameMaterial);
+            doorFrame.position.set(0, 3, -29.4);
+            scene.add(doorFrame);
+
+            const pointsArray = [
+                { x: -14, z: -14 }, { x: 16, z: -18 },
+                { x: -20, z: 10 }, { x: 18, z: 16 }, { x: 0, z: 6 }
+            ];
+
+            const postGeo = new THREE.BoxGeometry(0.8, 2, 0.8);
+            const coreIndicatorGeo = new THREE.SphereGeometry(0.2, 8, 8);
+
+            pointsArray.forEach((pos, idx) => {
+                const objGroup = new THREE.Group();
+                objGroup.position.set(pos.x, 1, pos.z);
+                const stemMesh = new THREE.Mesh(postGeo, new THREE.MeshBasicMaterial({ color: 0x0a0c10 }));
+                const bulbMesh = new THREE.Mesh(coreIndicatorGeo, new THREE.MeshBasicMaterial({ color: 0x330000 }));
+                bulbMesh.position.set(0, 1.1, 0);
+                bulbMesh.name = "indicatorLight";
+                
+                materialsToUpdate.push({ mat: stemMesh.material, baseColor: new THREE.Color(0x0a0c10) });
+
+                objGroup.add(stemMesh);
+                objGroup.add(bulbMesh);
+                objGroup.userData = { id: idx, isPulled: false };
+                scene.add(objGroup);
+                interactiveObjects.push(objGroup);
+            });
+        }
+
+        function handleCollisions(oldPos) {
+            if (player.pos.x < -28.5) player.pos.x = -28.5;
+            if (player.pos.x > 28.5) player.pos.x = 28.5;
+            if (player.pos.z > 28.5) player.pos.z = 28.5;
+
+            if (switchesCount < 5 || player.pos.x < -3 || player.pos.x > 3) {
+                if (player.pos.z < -28.5) player.pos.z = -28.5;
+            }
+
+            pillars.forEach(pillar => {
+                let dx = player.pos.x - pillar.position.x;
+                let dz = player.pos.z - pillar.position.z;
+                if (Math.abs(dx) < 2.0 + player.radius && Math.abs(dz) < 2.0 + player.radius) {
+                    player.pos.copy(oldPos);
+                }
+            });
+
+            interactiveObjects.forEach(obj => {
+                let dx = player.pos.x - obj.position.x;
+                let dz = player.pos.z - obj.position.z;
+                if (Math.abs(dx) < 0.4 + player.radius && Math.abs(dz) < 0.4 + player.radius) {
+                    player.pos.copy(oldPos);
+                }
+            });
+        }
+
+        function processSwitchActivation() {
+            interactiveObjects.forEach((obj) => {
+                let dist = player.pos.distanceTo(obj.position);
+                if (dist < 4.5 && !obj.userData.isPulled) {
+                    obj.userData.isPulled = true;
+                    const bulb = obj.getObjectByName("indicatorLight");
+                    if (bulb) bulb.material.color.setHex(0x00ff00);
+                    switchesCount++;
+                    counterEl.innerText = switchesCount;
+                    if (switchesCount < 5) {
+                        escapeDoor.position.x -= 1.0;
+                    } else {
+                        escapeDoor.position.x -= 6.0;
+                    }
+                }
+            });
+        }
+
+        function executeRenderLoop() {
+            requestAnimationFrame(executeRenderLoop);
+
+            let time = clock.getElapsedTime();
+            
+            let flickerIntensity = 0.4 + Math.sin(time * 20) * 0.3 + (Math.random() * 0.3);
+            if (Math.random() < 0.03) flickerIntensity = 0.05; 
+            if (Math.random() < 0.01) flickerIntensity = 0.0;  
+
+            materialsToUpdate.forEach(item => {
+                item.mat.color.copy(item.baseColor).multiplyScalar(flickerIntensity);
+            });
+            
+            doorFrame.material.color.setHex(0xff3333).multiplyScalar(flickerIntensity + 0.2);
+
+            interactiveObjects.forEach(obj => {
+                const bulb = obj.getObjectByName("indicatorLight");
+                if (bulb) {
+                    if (obj.userData.isPulled) {
+                        bulb.material.color.setHex(0x00ff00).multiplyScalar(flickerIntensity + 0.3);
+                    } else {
+                        bulb.material.color.setHex(0x550000).multiplyScalar(flickerIntensity + 0.2);
+                    }
+                }
+            });
+
+            if (document.pointerLockElement === document.body) {
+                let oldPos = player.pos.clone();
+                direction.z = Number(moveForward) - Number(moveBackward);
+                direction.x = Number(moveRight) - Number(moveLeft);
+                direction.normalize();
+
+                if (moveForward || moveBackward) camera.translateZ(-direction.z * player.speed);
+                if (moveLeft || moveRight) camera.translateX(direction.x * player.speed);
+
+                player.pos.x = camera.position.x;
+                player.pos.z = camera.position.z;
+
+                handleCollisions(oldPos);
+
+                camera.position.x = player.pos.x;
+                camera.position.z = player.pos.z;
+
+                if (switchesCount === 5 && player.pos.z < -29.2) {
+                    document.exitPointerLock();
+                    alert("VICTORY! YOU ESCAPED THE GARDEN OF HORROR!");
+                    window.location.reload();
+                    return;
+                }
+            }
+
+            camera.position.y = player.height;
+
+            let isNearTarget = false;
+            interactiveObjects.forEach((obj) => {
+                let dist = camera.position.distanceTo(obj.position);
+                if (dist < 4.5 && !obj.userData.isPulled) {
+                    isNearTarget = true;
+                }
+            });
+            promptEl.style.display = isNearTarget ? 'block' : 'none';
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
 </body>
 </html>
