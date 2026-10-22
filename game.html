@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden 0f H0RR0R 3D</title>
+    <title>Garden 0f H0RR0R -GAME- Shahadah Studios Elite</title>
     <style>
         * { box-sizing: border-box; }
         body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Courier New', monospace; background-color: #010103; color: #ff3333; user-select: none; }
@@ -23,7 +23,7 @@
 
     <div id="menu-screen">
         <h1>Garden 0f H0RR0R 3D</h1>
-        <p>Find 5 Hidden Switch Posts in the deep fog. Approach them closely and press [E] to flip. Slide the master exit door open and step through it to escape.</p>
+        <p>Find 5 Hidden Switch Posts in the deep fog with flicking lights. Approach them closely and press [E] to flip. Every switch you flip the Master door slides a bit, After you switch all 5 walk through it to escape!</p>
         <button class="action-btn" id="launch-engine-btn">Click to Start Game</button>
     </div>
 
@@ -307,7 +307,7 @@
 
                 if (switchesCount === 5 && player.pos.z < -29.2) {
                     document.exitPointerLock();
-                    alert("VICTORY! YOU ESCAPED THE GARDEN OF HORROR!");
+                    alert("VICTORY! YOU ESCAPED THE GARDEN OF HORROR! ");
                     window.location.reload();
                     return;
                 }
