@@ -1,5 +1,6 @@
 const counterEl = document.getElementById('counter');
 const promptEl = document.getElementById('interaction-prompt');
+const canvasEl = document.getElementById('gameCanvas');
 
 let scene, camera, renderer, clock;
 let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
@@ -9,7 +10,6 @@ let isLocked = false;
 let switchesCount = 0;
 let interactiveObjects = [];
 let escapeDoor;
-let flashlight;
 
 const player = {
     yaw: 0,
@@ -58,53 +58,35 @@ window.addEventListener('keyup', (e) => {
 function initGame() {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x1a1525);
-    scene.fog = new THREE.FogExp2(0x1a1525, 0.02); 
+    scene.background = new THREE.Color(0x150505);
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, player.height, 22);
     camera.rotation.order = 'YXZ';
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    document.body.appendChild(renderer.domElement);
-
-    const ambient = new THREE.AmbientLight(0xffffff, 1.5);
-    scene.add(ambient);
-
-    flashlight = new THREE.SpotLight(0xffffff, 10.0, 60, Math.PI / 3, 0.5, 0.2);
-    flashlight.castShadow = true;
-    scene.add(flashlight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     buildMap();
     animate();
 }
 
 function buildMap() {
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x3d4a3d, roughness: 0.5, emissive: 0x111a11 });
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x5a5252, roughness: 0.5, emissive: 0x1a1111 });
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0xb33636, roughness: 0.4, emissive: 0x2b0808 });
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x44444a, roughness: 0.5, emissive: 0x11111a });
+    const floorMat = new THREE.MeshBasicMaterial({ color: 0x1a2b1a });
+    const wallMat = new THREE.MeshBasicMaterial({ color: 0x331a1a });
+    const doorMat = new THREE.MeshBasicMaterial({ color: 0x881111 });
+    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x22222a });
 
     const floorGeo = new THREE.PlaneGeometry(60, 60);
     const floor = new THREE.Mesh(floorGeo, floorMat);
     floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
     scene.add(floor);
-
-    const ceil = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ color: 0x22222b, roughness: 0.8 }));
-    ceil.rotation.x = Math.PI / 2;
-    ceil.position.y = 8;
-    scene.add(ceil);
 
     const createWall = (w, h, d, x, y, z) => {
         const geo = new THREE.BoxGeometry(w, h, d);
         const mesh = new THREE.Mesh(geo, wallMat);
         mesh.position.set(x, y, z);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
         scene.add(mesh);
     };
 
@@ -118,8 +100,6 @@ function buildMap() {
     pillarPositions.forEach(pos => {
         const pillar = new THREE.Mesh(pillarGeo, pillarMat);
         pillar.position.set(pos.x, 4, pos.z);
-        pillar.castShadow = true;
-        pillar.receiveShadow = true;
         scene.add(pillar);
     });
 
@@ -128,10 +108,10 @@ function buildMap() {
         const canvas = document.createElement('canvas');
         canvas.width = 64; canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#4a1414'; ctx.fillRect(0, 0, 64, 64);
-        ctx.fillStyle = '#ff1a1a'; ctx.fillRect(16 + i, 10, 32, 40); 
+        ctx.fillStyle = '#4a0000'; ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#ff0000'; ctx.fillRect(16 + i, 10, 32, 40); 
         const artTex = new THREE.CanvasTexture(canvas);
-        const artMat = new THREE.MeshStandardMaterial({ map: artTex });
+        const artMat = new THREE.MeshBasicMaterial({ map: artTex });
 
         const frame = new THREE.Mesh(frameGeo, artMat);
         frame.position.set(-29.4, 4, -20 + (i * 8));
@@ -151,20 +131,18 @@ function buildMap() {
 
     const switchBoxGeo = new THREE.BoxGeometry(0.6, 0.9, 0.4);
     const leverGeo = new THREE.BoxGeometry(0.1, 0.4, 0.1);
-    
-    const beaconGeo = new THREE.SphereGeometry(0.2, 8, 8);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+    const beaconGeo = new THREE.SphereGeometry(0.25, 8, 8);
 
     switchPositions.forEach((pos, idx) => {
         const group = new THREE.Group();
         group.position.set(pos.x, 3, pos.z);
 
-        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
-        const lever = new THREE.Mesh(leverGeo, new THREE.MeshStandardMaterial({ color: 0xff4444 }));
+        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }));
+        const lever = new THREE.Mesh(leverGeo, new THREE.MeshBasicMaterial({ color: 0xff3333 }));
         lever.position.set(0, 0, 0.25);
         lever.name = "lever";
 
-        const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+        const beacon = new THREE.Mesh(beaconGeo, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
         beacon.position.set(0, 0.55, 0.2);
         beacon.name = "beacon";
 
@@ -190,7 +168,7 @@ function checkInteraction() {
             if (lever) lever.rotation.x = Math.PI / 3; 
 
             const beacon = obj.getObjectByName("beacon");
-            if (beacon) beacon.material = new THREE.MeshBasicMaterial({ color: 0x33ff33 });
+            if (beacon) beacon.material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
 
             switchesCount++;
             counterEl.innerText = switchesCount;
@@ -222,11 +200,6 @@ function animate() {
 
         camera.position.y = player.height;
 
-        flashlight.position.copy(camera.position);
-        const targetPos = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position);
-        flashlight.target.position.copy(targetPos);
-        flashlight.target.updateMatrixWorld();
-
         let showPrompt = false;
         interactiveObjects.forEach((obj) => {
             let dist = camera.position.distanceTo(obj.position);
@@ -241,11 +214,12 @@ function animate() {
 }
 
 window.addEventListener('resize', () => {
-    if (!camera) return;
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+
 
 
 
