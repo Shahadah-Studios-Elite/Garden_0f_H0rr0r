@@ -1,4 +1,4 @@
-// Ooo noice!
+// XD
 const counterEl = document.getElementById('counter');
 const promptEl = document.getElementById('interaction-prompt');
 
@@ -59,7 +59,8 @@ window.addEventListener('keyup', (e) => {
 function initGame() {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x0a0a10, 0.04); 
+    
+    scene.fog = new THREE.FogExp2(0x130d1a, 0.03); 
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, player.height, 22);
@@ -71,10 +72,10 @@ function initGame() {
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
-    const ambient = new THREE.AmbientLight(0x221111, 0.6);
+    const ambient = new THREE.AmbientLight(0x442222, 1.2);
     scene.add(ambient);
 
-    flashlight = new THREE.SpotLight(0xffffff, 4.0, 40, Math.PI / 4, 0.5, 1);
+    flashlight = new THREE.SpotLight(0xfff5ea, 8.0, 50, Math.PI / 3, 0.6, 0.5);
     flashlight.castShadow = true;
     scene.add(flashlight);
 
@@ -83,10 +84,10 @@ function initGame() {
 }
 
 function buildMap() {
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x2b332b, roughness: 0.6 });
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x4a4444, roughness: 0.5 });
-    const doorMat = new THREE.MeshStandardMaterial({ color: 0x662222, roughness: 0.4 });
-    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x333338, roughness: 0.7 });
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x444f44, roughness: 0.4, metalness: 0.1 });
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x6e6565, roughness: 0.4, metalness: 0.1 });
+    const doorMat = new THREE.MeshStandardMaterial({ color: 0x993333, roughness: 0.5 });
+    const pillarMat = new THREE.MeshStandardMaterial({ color: 0x4a4a54, roughness: 0.5 });
 
     const floorGeo = new THREE.PlaneGeometry(60, 60);
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -94,7 +95,7 @@ function buildMap() {
     floor.receiveShadow = true;
     scene.add(floor);
 
-    const ceil = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ color: 0x15151c, roughness: 0.9 }));
+    const ceil = new THREE.Mesh(floorGeo, new THREE.MeshStandardMaterial({ color: 0x22222b, roughness: 0.8 }));
     ceil.rotation.x = Math.PI / 2;
     ceil.position.y = 8;
     scene.add(ceil);
@@ -113,8 +114,8 @@ function buildMap() {
     createWall(1, 8, 60, -30, 4, 0); 
     createWall(1, 8, 60, 30, 4, 0);  
 
-    const pillarGeo = new THREE.BoxGeometry(3, 8, 3);
-    const pillarPositions = [{x: -10, z: -5}, {x: 10, z: -5}, {x: -10, z: 10}, {x: 10, z: 10}];
+    const pillarGeo = new THREE.BoxGeometry(4, 8, 4);
+    const pillarPositions = [{x: -12, z: -8}, {x: 12, z: -8}, {x: -12, z: 12}, {x: 12, z: 12}];
     pillarPositions.forEach(pos => {
         const pillar = new THREE.Mesh(pillarGeo, pillarMat);
         pillar.position.set(pos.x, 4, pos.z);
@@ -128,8 +129,8 @@ function buildMap() {
         const canvas = document.createElement('canvas');
         canvas.width = 64; canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#1a0505'; ctx.fillRect(0, 0, 64, 64);
-        ctx.fillStyle = '#990000'; ctx.fillRect(16 + i, 10, 32, 40); 
+        ctx.fillStyle = '#2d0a0a'; ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#d60000'; ctx.fillRect(16 + i, 10, 32, 40); 
         const artTex = new THREE.CanvasTexture(canvas);
         const artMat = new THREE.MeshStandardMaterial({ map: artTex });
 
@@ -149,23 +150,23 @@ function buildMap() {
         { x: -22, z: 12 }, { x: 20, z: 18 }, { x: 2, z: 10 }
     ];
 
-    const switchBoxGeo = new THREE.BoxGeometry(0.5, 0.8, 0.4);
+    const switchBoxGeo = new THREE.BoxGeometry(0.6, 0.9, 0.4);
     const leverGeo = new THREE.BoxGeometry(0.1, 0.4, 0.1);
     
-    const beaconGeo = new THREE.SphereGeometry(0.1, 8, 8);
-    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const beaconGeo = new THREE.SphereGeometry(0.15, 8, 8);
+    const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff1111 });
 
     switchPositions.forEach((pos, idx) => {
         const group = new THREE.Group();
         group.position.set(pos.x, 3, pos.z);
 
-        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshStandardMaterial({ color: 0x222222 }));
-        const lever = new THREE.Mesh(leverGeo, new THREE.MeshStandardMaterial({ color: 0xcc1111 }));
+        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        const lever = new THREE.Mesh(leverGeo, new THREE.MeshStandardMaterial({ color: 0xff2222 }));
         lever.position.set(0, 0, 0.25);
         lever.name = "lever";
 
         const beacon = new THREE.Mesh(beaconGeo, beaconMat);
-        beacon.position.set(0, 0.5, 0.2);
+        beacon.position.set(0, 0.55, 0.2);
         beacon.name = "beacon";
 
         group.add(base);
@@ -190,7 +191,7 @@ function checkInteraction() {
             if (lever) lever.rotation.x = Math.PI / 3; 
 
             const beacon = obj.getObjectByName("beacon");
-            if (beacon) beacon.material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            if (beacon) beacon.material = new THREE.MeshBasicMaterial({ color: 0x00ff33 });
 
             switchesCount++;
             counterEl.innerText = switchesCount;
