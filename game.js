@@ -31,6 +31,7 @@ document.addEventListener('pointerlockchange', () => {
 
 document.addEventListener('mousemove', (event) => {
     if (!isLocked) return;
+    
     player.yaw -= event.movementX * 0.0025;
     player.pitch -= event.movementY * 0.0025;
     player.pitch = Math.max(-Math.PI / 2.5, Math.min(Math.PI / 2.5, player.pitch));
@@ -58,11 +59,10 @@ window.addEventListener('keyup', (e) => {
 function initGame() {
     clock = new THREE.Clock();
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x150505);
+    scene.background = new THREE.Color(0x2a1010); 
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, player.height, 22);
-    camera.rotation.order = 'YXZ';
+    camera.position.set(0, player.height, 20);
 
     renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -73,10 +73,10 @@ function initGame() {
 }
 
 function buildMap() {
-    const floorMat = new THREE.MeshBasicMaterial({ color: 0x1a2b1a });
-    const wallMat = new THREE.MeshBasicMaterial({ color: 0x331a1a });
-    const doorMat = new THREE.MeshBasicMaterial({ color: 0x881111 });
-    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x22222a });
+    const floorMat = new THREE.MeshBasicMaterial({ color: 0x2b4c2b });
+    const wallMat = new THREE.MeshBasicMaterial({ color: 0x5c2e2e });
+    const doorMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x3a3a4a });
 
     const floorGeo = new THREE.PlaneGeometry(60, 60);
     const floor = new THREE.Mesh(floorGeo, floorMat);
@@ -108,8 +108,8 @@ function buildMap() {
         const canvas = document.createElement('canvas');
         canvas.width = 64; canvas.height = 64;
         const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#4a0000'; ctx.fillRect(0, 0, 64, 64);
-        ctx.fillStyle = '#ff0000'; ctx.fillRect(16 + i, 10, 32, 40); 
+        ctx.fillStyle = '#6a0000'; ctx.fillRect(0, 0, 64, 64);
+        ctx.fillStyle = '#ff1a1a'; ctx.fillRect(16 + i, 10, 32, 40); 
         const artTex = new THREE.CanvasTexture(canvas);
         const artMat = new THREE.MeshBasicMaterial({ map: artTex });
 
@@ -137,8 +137,8 @@ function buildMap() {
         const group = new THREE.Group();
         group.position.set(pos.x, 3, pos.z);
 
-        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshBasicMaterial({ color: 0x000000 }));
-        const lever = new THREE.Mesh(leverGeo, new THREE.MeshBasicMaterial({ color: 0xff3333 }));
+        const base = new THREE.Mesh(switchBoxGeo, new THREE.MeshBasicMaterial({ color: 0x111111 }));
+        const lever = new THREE.Mesh(leverGeo, new THREE.MeshBasicMaterial({ color: 0xff5555 }));
         lever.position.set(0, 0, 0.25);
         lever.name = "lever";
 
@@ -218,7 +218,6 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-
 
 
 
