@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garden 0f H0RR0R 3D - Live Game</title>
     <link rel="stylesheet" href="main.css">
-    <!-- Three.js Library Yep three.js is used XD -->
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
@@ -14,7 +13,10 @@
     <div id="interaction-prompt">Press [E] to Flip Switch</div>
     <div id="crosshair"></div>
 
-    <!-- Load Gameplay Loop Engine Logic -->
+    <!-- This canvas ensures the browser forces WebGL display injection immediately duh, WithOUT IT..... LOL -->
+    <canvas id="gameCanvas"></canvas>
+
     <script src="game.js"></script>
 </body>
 </html>
+
