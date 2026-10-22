@@ -3,162 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garden 0f H0RR0R 3D - Bright Debug Version</title>
+    <title>Garden 0f H0RR0R 3D - Modular Stable Edition</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: Arial, sans-serif; background-color: #111118; color: #ffffff; }
-        #gameCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
-        #hud { position: absolute; top: 20px; left: 20px; font-size: 1.5rem; font-weight: bold; color: #ff3333; background: rgba(0, 0, 0, 0.6); padding: 10px; border-radius: 5px; z-index: 5; pointer-events: none; }
-        #interaction-prompt { position: absolute; bottom: 25%; width: 100%; text-align: center; font-size: 2rem; color: #ffff00; background: rgba(0, 0, 0, 0.6); font-weight: bold; display: none; pointer-events: none; z-index: 5; }
-        #crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background: #ff3333; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; }
-        #click-notice { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.85); color: white; padding: 25px; font-size: 1.8rem; font-weight: bold; border-radius: 10px; z-index: 10; text-align: center; cursor: pointer; box-shadow: 0 0 20px rgba(255,0,0,0.5); }
+        * { box-sizing: border-box; }
+        body, html { margin: 0; padding: 0; overflow: hidden; width: 100%; height: 100%; font-family: 'Courier New', monospace; background-color: #0c0808; color: #ff3333; user-select: none; }
+        #canvas-holder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #menu-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #220505 0%, #050000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 10; text-align: center; }
+        #menu-screen h1 { font-size: 3.5rem; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 15px; text-shadow: 0 0 12px #ff0000; }
+        #menu-screen p { color: #bbbbbb; font-size: 1.1rem; margin-bottom: 35px; max-width: 500px; line-height: 1.6; }
+        .action-btn { padding: 16px 45px; font-size: 1.4rem; background: #440000; color: #ff4444; border: 3px solid #ff3333; cursor: pointer; text-transform: uppercase; font-weight: bold; box-shadow: 0 0 15px rgba(255, 0, 0, 0.4); transition: 0.2s; }
+        .action-btn:hover { background: #ff3333; color: #000000; box-shadow: 0 0 30px #ff3333; }
+        #hud-overlay { position: absolute; top: 25px; left: 25px; font-size: 1.6rem; font-weight: bold; text-shadow: 2px 2px 5px #000000; pointer-events: none; z-index: 5; display: none; }
+        #interaction-prompt { position: absolute; bottom: 25%; width: 100%; text-align: center; font-size: 1.8rem; color: #ffffff; text-shadow: 0 0 8px #ff0000; font-weight: bold; display: none; pointer-events: none; z-index: 5; }
+        #crosshair { position: absolute; top: 50%; left: 50%; width: 8px; height: 8px; background: rgba(255, 50, 50, 0.8); border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; display: none; box-shadow: 0 0 4px #000000; }
     </style>
     <script src="https://cloudflare.com"></script>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
-    <div id="click-notice">CLICK HERE TO START THE ENGINE</div>
-    <div id="hud">Switches Discovered: <span id="counter">0</span> / 5</div>
-    <div id="interaction-prompt">Press [E] to Flip Switch</div>
+    <div id="menu-screen">
+        <h1>Garden 0f H0RR0R 3D</h1>
+        <p>Find 5 Hidden Switch Posts. Approach them and press [E] to flip. Collect them all to unlock the Master Exit Door.</p>
+        <button class="action-btn" id="launch-engine-btn">Click to Start Game</button>
+    </div>
+    <div id="hud-overlay">Switches Activated: <span id="counter">0</span> / 5</div>
+    <div id="interaction-prompt">PRESS [E] TO INTERACT</div>
     <div id="crosshair"></div>
-    <script>
-        let scene, camera, renderer, clock;
-        let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-        let direction = new THREE.Vector3();
-        let isLocked = false;
-        let switchesCount = 0;
-        let interactiveObjects = [];
-        let escapeDoor;
-        const player = { yaw: 0, pitch: 0, speed: 0.2, height: 2 };
-        window.onload = () => {
-            initGame();
-            document.body.addEventListener('click', () => { document.body.requestPointerLock(); });
-        };
-        document.addEventListener('pointerlockchange', () => {
-            const noticeEl = document.getElementById('click-notice');
-            isLocked = document.pointerLockElement === document.body;
-            noticeEl.style.display = isLocked ? 'none' : 'block';
-        });
-        document.addEventListener('mousemove', (event) => {
-            if (!isLocked) return;
-            player.yaw -= event.movementX * 0.003;
-            player.pitch -= event.movementY * 0.003;
-            player.pitch = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, player.pitch));
-            camera.rotation.set(0, 0, 0);
-            camera.rotateY(player.yaw);
-            camera.rotateX(player.pitch);
-        });
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = true;
-            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = true;
-            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = true;
-            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = true;
-            if (e.code === 'KeyE') checkInteraction();
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'KeyW' || e.code === 'ArrowUp') moveForward = false;
-            if (e.code === 'KeyS' || e.code === 'ArrowDown') moveBackward = false;
-            if (e.code === 'KeyA' || e.code === 'ArrowLeft') moveLeft = false;
-            if (e.code === 'KeyD' || e.code === 'ArrowRight') moveRight = false;
-        });
-        function initGame() {
-            const canvasEl = document.getElementById('gameCanvas');
-            clock = new THREE.Clock();
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x3a3a4a);
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, player.height, 20);
-            renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            buildMap();
-            animate();
-        }
-        function buildMap() {
-            const floorMat = new THREE.MeshBasicMaterial({ color: 0x225522 }); 
-            const wallMat = new THREE.MeshBasicMaterial({ color: 0x773333 });  
-            const doorMat = new THREE.MeshBasicMaterial({ color: 0x333399 });  
-            const pillarMat = new THREE.MeshBasicMaterial({ color: 0x555566 });
-            const floorGeo = new THREE.PlaneGeometry(60, 60);
-            const floor = new THREE.Mesh(floorGeo, floorMat);
-            floor.rotation.x = -Math.PI / 2;
-            scene.add(floor);
-            const createWall = (w, h, d, x, y, z) => {
-                const geo = new THREE.BoxGeometry(w, h, d);
-                const mesh = new THREE.Mesh(geo, wallMat);
-                mesh.position.set(x, y, z);
-                scene.add(mesh);
-            };
-            createWall(60, 8, 1, 0, 4, -30); 
-            createWall(60, 8, 1, 0, 4, 30);  
-            createWall(1, 8, 60, -30, 4, 0); 
-            createWall(1, 8, 60, 30, 4, 0);  
-            const pillarGeo = new THREE.BoxGeometry(4, 8, 4);
-            const pillarPositions = [{x: -12, z: -8}, {x: 12, z: -8}, {x: -12, z: 12}, {x: 12, z: 12}];
-            pillarPositions.forEach(pos => {
-                const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-                pillar.position.set(pos.x, 4, pos.z);
-                scene.add(pillar);
-            });
-            const switchBoxGeo = new THREE.BoxGeometry(1.2, 1.8, 1.2);
-            const switchPositions = [
-                { x: -15, z: -15 }, { x: 18, z: -20 },
-                { x: -22, z: 12 }, { x: 20, z: 18 }, { x: 0, z: 5 }
-            ];
-            switchPositions.forEach((pos, idx) => {
-                const mesh = new THREE.Mesh(switchBoxGeo, new THREE.MeshBasicMaterial({ color: 0xff00ff }));
-                mesh.position.set(pos.x, 1.5, pos.z);
-                mesh.userData = { id: idx, active: false };
-                scene.add(mesh);
-                interactiveObjects.push(mesh);
-            });
-            const doorGeo = new THREE.BoxGeometry(6, 6, 1);
-            escapeDoor = new THREE.Mesh(doorGeo, doorMat);
-            escapeDoor.position.set(0, 3, -29);
-            scene.add(escapeDoor);
-        }
-        function checkInteraction() {
-            interactiveObjects.forEach((obj) => {
-                let dist = camera.position.distanceTo(obj.position);
-                if (dist < 5.0 && !obj.userData.active) {
-                    obj.userData.active = true;
-                    obj.material.color.setHex(0x00ffff); 
-                    switchesCount++;
-                    document.getElementById('counter').innerText = switchesCount;
-                    if (switchesCount < 5) {
-                        escapeDoor.position.x += 2.0; 
-                    } else {
-                        escapeDoor.position.y += 10.0; 
-                        setTimeout(() => { alert("YOU ESCAPED THE BRIGHT GARDEN!"); document.exitPointerLock(); }, 200);
-                    }
-                }
-            });
-        }
-        function animate() {
-            requestAnimationFrame(animate);
-            if (isLocked) {
-                direction.z = Number(moveForward) - Number(moveBackward);
-                direction.x = Number(moveRight) - Number(moveLeft);
-                direction.normalize();
-                if (moveForward || moveBackward) camera.translateZ(-direction.z * player.speed);
-                if (moveLeft || moveRight) camera.translateX(direction.x * player.speed);
-            }
-            camera.position.y = player.height;
-            let showPrompt = false;
-            interactiveObjects.forEach((obj) => {
-                let dist = camera.position.distanceTo(obj.position);
-                if (dist < 5.0 && !obj.userData.active) showPrompt = true;
-            });
-            document.getElementById('interaction-prompt').style.display = showPrompt ? 'block' : 'none';
-            renderer.render(scene, camera);
-        }
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-    </script>
+    <div id="canvas-holder"></div>
+    <script src="js.js"></script>
 </body>
 </html>
-
-
-
