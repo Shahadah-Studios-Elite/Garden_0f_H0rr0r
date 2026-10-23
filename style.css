@@ -5,57 +5,68 @@ body, html {
     width: 100%;
     height: 100%;
     font-family: 'Courier New', Courier, monospace;
-    background-color: #050505;
-    color: #ff3333;
+    background-color: #020202;
+    color: #ff1111;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
+    
+    animation: screen-twitch 0.4s infinite steps(1);
+    cursor: crosshair;
 }
 
 #menu {
-    background: radial-gradient(circle, #1a0000 0%, #000000 100%);
+    background: radial-gradient(circle, rgba(15,0,0,0.4) 0%, #000000 85%),
+                radial-gradient(circle at center, #2a0000 0%, #050505 100%);
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    animation: bleed-pulse 6s ease-in-out infinite alternate;
 }
 
 h1 {
     font-size: 4rem;
     text-transform: uppercase;
-    letter-spacing: 5px;
+    letter-spacing: 8px;
     margin-bottom: 10px;
-    text-shadow: 0 0 10px #ff0000;
-    animation: flicker 2s infinite alternate;
+    position: relative;
+    color: #fff;
+    text-shadow: 0.04em 0 0 rgba(255, 0, 0, 0.9),
+                 -0.03em -0.04em 0 rgba(0, 0, 0, 1),
+                 0.02em 0.04em 0 rgba(100, 0, 0, 0.8);
+    animation: violent-glitch 0.6s infinite steps(2);
 }
 
 p {
-    color: #aaaaaa;
-    font-size: 1.2rem;
-    margin-bottom: 30px;
+    color: #666666;
+    font-size: 1.1rem;
+    margin-bottom: 40px;
+    text-transform: lowercase;
+    letter-spacing: 2px;
+    font-style: italic;
+    opacity: 0.7;
+    animation: ghost-drift 4s ease-in-out infinite alternate;
 }
 
 .start-btn {
-    padding: 15px 40px;
-    font-size: 1.5rem;
-    background: #330000;
-    color: #ff3333;
-    border: 2px solid #ff3333;
+    padding: 18px 45px;
+    font-size: 1.4rem;
+    font-weight: bold;
+    background: #150000;
+    color: #cc0000;
+    border: 2px solid #550000;
     cursor: pointer;
     text-transform: uppercase;
     text-decoration: none;
-    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
-    transition: 0.3s;
-}
-
-.start-btn:hover {
-    background: #ff3333;
-    color: #000;
-    box-shadow: 0 0 25px #ff3333;
+    letter-spacing: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.9), inset 0 0 10px #000;
+    /* Transition uses "steps" so it doesn't animate smoothly, matching a broken UI */
+    transition: 0.1s steps(2);
 }
 
 @keyframes flicker {
